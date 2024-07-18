@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { TariUniverseProvider } from "@tariproject/tarijs"
+import { AccountTemplate, TariswapTemplate, TariUniverseProvider, TransactionBuilder } from "@tariproject/tarijs"
 import * as cbor from "./cbor.ts"
 import { getSubstate, submitAndWaitForTransaction } from "./wallet.ts"
+import { Amount, transactionHelper } from "@tariproject/tarijs/dist/builders/index"
 
-export const SWAP_FEE = "50"
+export const SWAP_FEE = 50
 export const TARISWAP_TEMPLATE_ADDRESS = "52c1c37b0d6e984ecb32e07bb359823d13a5768edb658278c867be1cd0261f5a"
 export const FIRST_TOKEN_RESOURCE_ADDRESS = "resource_e71c7c68bd239f3c4938d98b408e680259369ef415165801db0ef56b"
 export const SECOND_TOKEN_RESOURCE_ADDRESS = "resource_a9af4f7fd8233de7e03e771b70bbbcd66f2e9a0a485135ef64d5a68a"
@@ -16,19 +17,17 @@ export type PoolResources = {
 
 export async function createPool(provider: TariUniverseProvider) {
   const account = await provider.getAccount()
-  const instructions = [
-    {
-      CallFunction: {
-        template_address: TARISWAP_TEMPLATE_ADDRESS,
-        function: "new",
-        args: [FIRST_TOKEN_RESOURCE_ADDRESS, SECOND_TOKEN_RESOURCE_ADDRESS, SWAP_FEE],
-      },
-    },
-  ]
+  const builder = new TransactionBuilder()
+  const tariswap = new TariswapTemplate(SWAP_COMPONENT_ADDRESS)
+  const swapFeeAmount = new Amount(SWAP_FEE)
+
+  const transaction = builder
+    .callFunction(tariswap.newPool, [FIRST_TOKEN_RESOURCE_ADDRESS, SECOND_TOKEN_RESOURCE_ADDRESS, swapFeeAmount])
+    .build()
 
   const required_substates = [{ substate_id: account.address }]
-
-  const result: any = await submitAndWaitForTransaction(provider, account, instructions, required_substates)
+  const req = transactionHelper.buildTransactionRequest(transaction, account.account_id, required_substates)
+  const result: any = await submitAndWaitForTransaction(provider, req)
   const upSubstates: any[] = result?.result?.Accept.up_substates
   const swapSubstate = {
     resource: upSubstates[4][0].Resource,
@@ -70,105 +69,52 @@ export async function getPoolLiquidityResource(provider: TariUniverseProvider) {
 
 export async function addLiquidity(provider: TariUniverseProvider, amountTokenA: number, amountTokenB: number) {
   const account = await provider.getAccount()
-  const instructions = [
-    {
-      CallMethod: {
-        component_address: account.address,
-        method: "withdraw",
-        args: [FIRST_TOKEN_RESOURCE_ADDRESS, amountTokenA.toString()],
-      },
-    },
-    {
-      PutLastInstructionOutputOnWorkspace: {
-        key: [0],
-      },
-    },
-    {
-      CallMethod: {
-        component_address: account.address,
-        method: "withdraw",
-        args: [SECOND_TOKEN_RESOURCE_ADDRESS, amountTokenB.toString()],
-      },
-    },
-    {
-      PutLastInstructionOutputOnWorkspace: {
-        key: [1],
-      },
-    },
-    {
-      CallMethod: {
-        component_address: SWAP_COMPONENT_ADDRESS,
-        method: "add_liquidity",
-        args: [{ Workspace: [0] }, { Workspace: [1] }],
-      },
-    },
-    {
-      PutLastInstructionOutputOnWorkspace: {
-        key: [2],
-      },
-    },
-    {
-      CallMethod: {
-        component_address: account.address,
-        method: "deposit",
-        args: [{ Workspace: [2] }],
-      },
-    },
-  ]
+  const builder = new TransactionBuilder()
+  const tariswap = new TariswapTemplate(SWAP_COMPONENT_ADDRESS)
+  const accountComponent = new AccountTemplate(account.address)
+  const amountA = new Amount(amountTokenA)
+  const amountB = new Amount(amountTokenB)
+  const fee = new Amount(2000)
+
+  const transaction = builder
+    .callMethod(accountComponent.withdraw, [FIRST_TOKEN_RESOURCE_ADDRESS, amountA])
+    .putLastInstructionOutputOnWorkspace([0])
+    .callMethod(accountComponent.withdraw, [SECOND_TOKEN_RESOURCE_ADDRESS, amountB])
+    .putLastInstructionOutputOnWorkspace([1])
+    .callMethod(tariswap.addLiquidity, [{ Workspace: [0] }, { Workspace: [1] }])
+    .putLastInstructionOutputOnWorkspace([2])
+    .callMethod(accountComponent.deposit, [{ Workspace: [2] }])
+    .callMethod(accountComponent.payFee, [fee])
+    .build()
 
   const required_substates = [{ substate_id: account.address }, { substate_id: SWAP_COMPONENT_ADDRESS }]
-
-  const result = await submitAndWaitForTransaction(provider, account, instructions, required_substates)
+  const req = transactionHelper.buildTransactionRequest(transaction, account.account_id, required_substates)
+  const result = await submitAndWaitForTransaction(provider, req)
 
   return result
 }
 
 export async function removeLiquidity(provider: TariUniverseProvider, amountLpToken: number) {
   const account = await provider.getAccount()
-  const instructions = [
-    {
-      CallMethod: {
-        component_address: account.address,
-        method: "withdraw",
-        args: [LP_TOKEN_RESOURCE_ADDRESS, amountLpToken.toString()],
-      },
-    },
-    {
-      PutLastInstructionOutputOnWorkspace: {
-        key: [0],
-      },
-    },
-    {
-      CallMethod: {
-        component_address: SWAP_COMPONENT_ADDRESS,
-        method: "remove_liquidity",
-        args: [{ Workspace: [0] }],
-      },
-    },
-    {
-      PutLastInstructionOutputOnWorkspace: {
-        key: [1],
-      },
-    },
-    {
-      CallMethod: {
-        component_address: account.address,
-        method: "deposit",
-        args: [{ Workspace: [1, 46, 48] }],
-      },
-    },
-    {
-      CallMethod: {
-        component_address: account.address,
-        method: "deposit",
-        args: [{ Workspace: [1, 46, 49] }],
-      },
-    },
-  ]
+  const builder = new TransactionBuilder()
+  const tariswap = new TariswapTemplate(SWAP_COMPONENT_ADDRESS)
+  const accountComponent = new AccountTemplate(account.address)
+  const amountLp = new Amount(amountLpToken)
+  const fee = new Amount(2000)
+
+  const transaction = builder
+    .callMethod(accountComponent.withdraw, [LP_TOKEN_RESOURCE_ADDRESS, amountLp])
+    .putLastInstructionOutputOnWorkspace([0])
+    .callMethod(tariswap.removeLiquidity, [{ Workspace: [0] }])
+    .putLastInstructionOutputOnWorkspace([1])
+    .callMethod(accountComponent.deposit, [{ Workspace: [1, 46, 48] }])
+    .callMethod(accountComponent.deposit, [{ Workspace: [1, 46, 49] }])
+    .callMethod(accountComponent.payFee, [fee])
+    .build()
+
   const required_substates = [{ substate_id: account.address }, { substate_id: SWAP_COMPONENT_ADDRESS }]
-
-  const result = await submitAndWaitForTransaction(provider, account, instructions, required_substates)
-
+  const req = transactionHelper.buildTransactionRequest(transaction, account.account_id, required_substates)
+  const result = await submitAndWaitForTransaction(provider, req)
   return result
 }
 
@@ -179,42 +125,24 @@ export async function swap(
   outputToken: string
 ) {
   const account = await provider.getAccount()
-  const instructions = [
-    {
-      CallMethod: {
-        component_address: account.address,
-        method: "withdraw",
-        args: [inputToken, amountInputToken.toString()],
-      },
-    },
-    {
-      PutLastInstructionOutputOnWorkspace: {
-        key: [0],
-      },
-    },
-    {
-      CallMethod: {
-        component_address: SWAP_COMPONENT_ADDRESS,
-        method: "swap",
-        args: [{ Workspace: [0] }, outputToken],
-      },
-    },
-    {
-      PutLastInstructionOutputOnWorkspace: {
-        key: [1],
-      },
-    },
-    {
-      CallMethod: {
-        component_address: account.address,
-        method: "deposit",
-        args: [{ Workspace: [1] }],
-      },
-    },
-  ]
-  const required_substates = [{ substate_id: account.address }, { substate_id: SWAP_COMPONENT_ADDRESS }]
+  const builder = new TransactionBuilder()
+  const tariswap = new TariswapTemplate(SWAP_COMPONENT_ADDRESS)
+  const accountComponent = new AccountTemplate(account.address)
+  const amountInput = new Amount(amountInputToken)
+  const fee = new Amount(2000)
 
-  const result = await submitAndWaitForTransaction(provider, account, instructions, required_substates)
+  const transaction = builder
+    .callMethod(accountComponent.withdraw, [inputToken, amountInput])
+    .putLastInstructionOutputOnWorkspace([0])
+    .callMethod(tariswap.swap, [{ Workspace: [0] }, outputToken])
+    .putLastInstructionOutputOnWorkspace([1])
+    .callMethod(accountComponent.deposit, [{ Workspace: [1] }])
+    .callMethod(accountComponent.payFee, [fee])
+    .build()
+
+  const required_substates = [{ substate_id: account.address }, { substate_id: SWAP_COMPONENT_ADDRESS }]
+  const req = transactionHelper.buildTransactionRequest(transaction, account.account_id, required_substates)
+  const result = await submitAndWaitForTransaction(provider, req)
 
   return result
 }

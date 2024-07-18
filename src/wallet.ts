@@ -1,34 +1,8 @@
-import { TariUniverseProvider } from "@tariproject/tarijs"
-import { Account, SubmitTransactionRequest, SubstateRequirement, TransactionStatus } from "@tariproject/tarijs"
+import { SubmitTransactionRequest, TariUniverseProvider } from "@tariproject/tarijs"
+import { TransactionStatus } from "@tariproject/tarijs"
 import { FIRST_TOKEN_RESOURCE_ADDRESS, LP_TOKEN_RESOURCE_ADDRESS, SECOND_TOKEN_RESOURCE_ADDRESS } from "./tariswap"
 
-export async function submitAndWaitForTransaction(
-  provider: TariUniverseProvider,
-  account: Account,
-  instructions: object[],
-  required_substates: SubstateRequirement[]
-) {
-  const fee = 2000
-  const fee_instructions = [
-    {
-      CallMethod: {
-        component_address: account.address,
-        method: "pay_fee",
-        args: [`Amount(${fee})`],
-      },
-    },
-  ]
-  const req: SubmitTransactionRequest = {
-    account_id: account.account_id,
-    fee_instructions,
-    instructions: instructions as object[],
-    inputs: [],
-    input_refs: [],
-    required_substates,
-    is_dry_run: false,
-    min_epoch: null,
-    max_epoch: null,
-  }
+export async function submitAndWaitForTransaction(provider: TariUniverseProvider, req: SubmitTransactionRequest) {
   try {
     const resp = await provider.submitTransaction(req)
     const result = await waitForTransactionResult(provider, resp.transaction_id)
