@@ -4,11 +4,11 @@ import * as cbor from "./cbor.ts"
 import { getSubstate, submitAndWaitForTransaction } from "./wallet.ts"
 
 export const SWAP_FEE = "50"
-export const TARISWAP_TEMPLATE_ADDRESS = "52c1c37b0d6e984ecb32e07bb359823d13a5768edb658278c867be1cd0261f5a"
-export const FIRST_TOKEN_RESOURCE_ADDRESS = "resource_e71c7c68bd239f3c4938d98b408e680259369ef415165801db0ef56b"
-export const SECOND_TOKEN_RESOURCE_ADDRESS = "resource_a9af4f7fd8233de7e03e771b70bbbcd66f2e9a0a485135ef64d5a68a"
-export const LP_TOKEN_RESOURCE_ADDRESS = "resource_ce023f7d7084c63ee6503c04f024c1402e038a4b8d318a45e9c3d550"
-export const SWAP_COMPONENT_ADDRESS = "component_ce023f7d7084c63ee6503c04f024c1402e038a4b135a57d1edf48152"
+export const TARISWAP_TEMPLATE_ADDRESS = "ccc9f1bf07bb3c12a909e5a25a0d4697ed30092e7741ed3353c0a7ff3fa7d538"
+export const FIRST_TOKEN_RESOURCE_ADDRESS = "resource_e90768b30d3e97d6e80a794bcb141ca786e5501af32e0ad106ef47c1"
+export const SECOND_TOKEN_RESOURCE_ADDRESS = "resource_70229469c18f7f70193582d0f28033b7a044171c9ead5d487abe7c32"
+export const SWAP_COMPONENT_ADDRESS = "component_7d1f7f211eefcd14b7c25ee2d96d997f2bcd2802782dfd47ebca15e0"
+export const LP_TOKEN_RESOURCE_ADDRESS = "resource_7d1f7f211eefcd14b7c25ee2d96d997f2bcd2802037117daaf5feef0"
 
 export type PoolResources = {
   [key: string]: string
@@ -28,14 +28,14 @@ export async function createPool(provider: TariUniverseProvider) {
 
   const required_substates = [{ substate_id: account.address }]
 
-  const result: any = await submitAndWaitForTransaction(provider, account, instructions, required_substates)
-  const upSubstates: any[] = result?.result?.Accept.up_substates
+  const txReceipt: any = await submitAndWaitForTransaction(provider, account, instructions, required_substates)
+  const upSubstates: any[] = txReceipt?.result?.result?.Accept.up_substates
   const swapSubstate = {
     resource: upSubstates[4][0].Resource,
     component: upSubstates[5][0].Component,
   }
   console.log("Swap substate: ", swapSubstate)
-  return result
+  return txReceipt
 }
 
 export async function listPools(provider: TariUniverseProvider, pool_index_component: string) {

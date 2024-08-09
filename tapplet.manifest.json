@@ -1,6 +1,6 @@
 {
   "packageName": "tariswap-tapplet",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "displayName": "TariSwap tapplet for testing",
   "status": "TEST",
   "category": "TEST",
@@ -28,8 +28,8 @@
       "npm": {
         "packageName": "tariswap-tapplet",
         "registry": "https://registry.npmjs.org/tariswap-tapplet",
-        "distTarball": "https://registry.npmjs.org/tariswap-tapplet/-/tariswap-tapplet-0.0.1.tgz",
-        "integrity": "sha512-qWtb4RVVRlFPon8AwWYHYTq4fIXZBOsm36zLiU5tgaaQ9Crtrb1oMAWtZ7riIUT7MokU5J++QcOFRfwKtjEzRg=="
+        "distTarball": "https://registry.npmjs.org/tariswap-tapplet/-/tariswap-tapplet-0.0.2.tgz",
+        "integrity": "sha512-40N4MpHm9lF5XGly/6Ef99y1JbJF+2y/TmAq3fkMsItpXgBljE/HO34GM5U4HPL9BuVNZ4uHgTrsHF8AqsAmNw=="
       }
     }
   },
@@ -38,5 +38,5 @@
     "STAGENET",
     "NEXTNET"
   ],
-  "manifestVersion": "0.0.1"
+  "manifestVersion": "0.0.2"
 }

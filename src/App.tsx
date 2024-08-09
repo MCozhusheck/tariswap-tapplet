@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useRef, useState } from "react"
-import { Box, Paper, Typography } from "@mui/material"
+import { Box, Button, Paper, Typography } from "@mui/material"
 import {
   TariPermissions,
   TariUniverseProvider,
@@ -13,6 +13,7 @@ import {
   PoolResources,
   SECOND_TOKEN_RESOURCE_ADDRESS,
   addLiquidity,
+  createPool,
   getPoolBalances,
   getPoolLPToken,
   removeLiquidity,
@@ -112,6 +113,9 @@ function App() {
         <ExitPool onSubmit={handleExitPool} callback={refreshState} />
         <Swap handleSwap={handleSwap} callback={refreshState} />
       </Box>
+      <Button onClick={() => createPool(provider.current)} variant="contained">
+        Create new pool
+      </Button>
     </Box>
   )
 }
